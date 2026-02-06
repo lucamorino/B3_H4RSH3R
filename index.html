@@ -5,37 +5,88 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta name="theme-color" content="#000000">
     <meta name="rnbo-version" content="1.0.0-alpha.5">
-    <link rel="stylesheet" href="style/style.css">
+    <link rel="stylesheet" href="style/app.css">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <title>Noise - No Input Feedback</title>
 </head>
 
 <body>
-   <div id="enter-overlay">
-      <div id="enter-content">
-         <button id="enter-button">ENTER</button>
+   <div id="app-root" class="centered-app">
+
+        <div id="enter-overlay">
+            <div id="enter-content">
+              <div id="enter-text"></div>
+              <div class="spacer"></div>
+              <div class="spacer"></div>
+              <button id="enter-button" type="button"> >>> </button>
+            </div>
+        </div>
+
+        <div id="gameover-overlay">
+          <div id="gameover-content">G4M3 0V3R</div>
+        </div>
+
+        <div class="ui-frame">
+          <section class="panel panel-top">
+            <div class="panel-inner">
+              <div class="oscillo-row">
+                <div id="oscilloscope-container" class="control-frame controls">
+                  <canvas id="oscilloscope" width="320" height="70"></canvas>
+                </div>
+                <!-- <div class="lfo-badge">LFO</div> -->
+              </div>
+
+              <div class="meter-group">
+                <div class="metrics-meter">
+                  <div id="penalty-counter" class="metric-box">
+                    <div class="metric-label">LIFE</div>
+                    <div class="metric-value" id="penalty-counter-value">10.0</div>
+                  </div>
+                  <div id="harshness-counter" class="metric-box">
+                    <div class="metric-label">HARSHNESS</div>
+                    <div class="metric-value" id="harshness-value">0.00</div>
+                  </div>
+                </div>
+
+                <div id="energy-counter" class="meter-row energy-meter">
+                  <div class="meter-label">ENERGY</div>
+                  <div class="energy-bar" min=0 max=1 step=0.01>
+                    <div id="energy-fill"></div>
+                  </div>
+                  <div class="energy-value" id="energy-counter-value">0.80</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel panel-bottom">
+            <div class="panel-inner">
+              <div class="control-grid">
+                <div id="xy-pad-container" class="control-frame controls pad-frame">
+                  <canvas id="xy-pad" width="260" height="260"></canvas>
+                </div>
+
+                <div id="xy-slider-container" class="control-frame controls slider-frame">
+                  <input id="xy-slider" type="range" min="0" max="100" value="0" />
+                </div>
+              </div>
+
+              <div id="touch-debug" class="debug-box">[--, --, --]</div>
+              
+                <div class="preset-row">
+                  <button class="preset-btn" type="button" data-preset="0">P1</button>
+                  <button class="preset-btn" type="button" data-preset="1">P2</button>
+                  <button class="preset-btn" type="button" data-preset="2">P3</button>
+                  <button class="preset-btn" type="button" data-preset="3">P4</button>
+                </div>
+                
+              </div>
+          </section>
+        </div>
+
       </div>
-   </div>
-   <div id="main-content" class="rounded">
-    <h1 id="main-title">NOISE #1</h1>
-    <h2 id="sub-title">No-Input Feedback Noise Generator</h2>
-   </div>
-   
-   <div style="margin-top: 2rem;"></div>
 
-   <div id="xy-pad-container">
-       <canvas id="xy-pad" width="300" height="300" style="border:1px solid #333; border-radius:8px;"></canvas>
-   </div>
-
-   <div style="margin-bottom: 2rem;"></div>
-
-   <div id="instructions">
-         <p><em>Click on the pad to start generating sounds.</em></p>
-         <p><em>As long as you hold down your finger, the sound will continue.</em></p>
-         <p><em>Move around the pad to make the noise change.</em></p>
-   </div>
-
-   <script type="text/javascript" src="https://cdn.cycling74.com/rnbo/1.4.1/rnbo.min.js"></script>
+   <script type="text/javascript" src="https://cdn.cycling74.com/rnbo/1.4.2/rnbo.min.js"></script>
 
     <!-- Load the script that creates the RNBO device  -->
     <!-- Uncomment if you know the version of your exported RNBO patch to avoid dynamic loading -->
@@ -43,7 +94,7 @@
 
     <!-- (Optional) The guardrails.js script isn't required for RNBO to work, and you can skip including it -->
     <!-- It simply offers some helpful error messages for common problems -->
-    <script type="text/javascript" src="js/guardrails.js"></script>
+    <!-- <script type="text/javascript" src="js/guardrails.js"></script> -->
 
     <!-- Import RNBO Engine Wrapper -->
     <!-- Make sure to include the RNBO engine version to the version of your exported code, found in rnbopackage.json -->

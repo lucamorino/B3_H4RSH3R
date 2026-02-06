@@ -1,15 +1,19 @@
-
+import '@soundworks/helpers/polyfills.js';
+import { Client } from '@soundworks/core/client.js';
+import { loadConfig, launcher } from '@soundworks/helpers/browser.js';
+import { html, render } from 'lit';
+import '@ircam/sc-components';
 //import devicemotion from '@ircam/devicemotion';
 
-//import "../js/lib/guardrails.js";
+import "../lib/guardrails.js";
 
-//import { Scheduler } from '@ircam/sc-scheduling'; 
-//import loadAudioBuffer from '../js/lib/load-audio-buffer.js';
-//import LoopSampler from '../js/lib/LoopSampler.js';
+import { Scheduler } from '@ircam/sc-scheduling'; 
+import loadAudioBuffer from '../lib/load-audio-buffer.js';
+import LoopSampler from '../lib/LoopSampler.js';
 
-//import pluginPlatformInit from '@soundworks/plugin-platform-init/client.js'; 
-//import pluginSync from '@soundworks/plugin-sync/client.js'; 
-//import pluginCheckin from '@soundworks/plugin-checkin/client.js'; 
+import pluginPlatformInit from '@soundworks/plugin-platform-init/client.js'; 
+import pluginSync from '@soundworks/plugin-sync/client.js'; 
+import pluginCheckin from '@soundworks/plugin-checkin/client.js'; 
 //import { start } from 'repl';
 //import { send } from 'process';
 
@@ -33,10 +37,9 @@ let backgroundState = { mode: 'idle', gain: 0, color: 'black' };
 //let currentPenalty = 0;
 
 // Create the device
-async function main(audioContext) {
-  //const audioContext = new AudioContext();
-
-  /* const config = loadConfig();
+async function main($container) {
+  
+  const config = loadConfig();
   const client = new Client(config);
   const audioContext = new AudioContext();
   console.log(audioContext.sampleRate);
@@ -47,38 +50,38 @@ async function main(audioContext) {
     /* onActivate: (plugin) => {
       // tryEnterFullscreen now returns a Promise
       return tryEnterFullscreen();
-    }
+    } */
   }); 
   client.pluginManager.register('sync', pluginSync, {
     getTimeFunction: () => audioContext.currentTime, 
   }, ['platform-init']); 
 
   // cf. https://soundworks.dev/tools/helpers.html#browserlauncher
-  launcher.register(client, { initScreensContainer: $container }); */
+  launcher.register(client, { initScreensContainer: $container });
 
-  //await client.start();
+  await client.start();
 
-  //const platformInit = await client.pluginManager.get('platform-init');
+  const platformInit = await client.pluginManager.get('platform-init');
 
 
   // Attempt to enter full-screen mode automatically after initial user gesture
   //tryEnterFullscreen();
 
   // retrieve initialized sync plugin 
-  //const sync = await client.pluginManager.get('sync'); 
-  /* const scheduler = new Scheduler(() => sync.getSyncTime(), { 
+  const sync = await client.pluginManager.get('sync'); 
+  const scheduler = new Scheduler(() => sync.getSyncTime(), { 
     currentTimeToProcessorTimeFunction: syncTime => sync.getLocalTime(syncTime), 
-  }); */
+  });
 
-  //const checkin = await client.pluginManager.get('checkin');
-  //const index = checkin.getIndex();
+  const checkin = await client.pluginManager.get('checkin');
+  const index = checkin.getIndex();
   //const instr = checkin.getData();
-  //const global = await client.stateManager.attach('global');
-  //const user = await client.stateManager.create('user');
-  //const control = await client.stateManager.create('control');
+  const global = await client.stateManager.attach('global');
+  const user = await client.stateManager.create('user');
+  const control = await client.stateManager.create('control');
 
-  //user.set({id: index});
-  //control.set({id: index});
+  user.set({id: index});
+  control.set({id: index});
 
   // Create gain node and connect it to audio output
   const outputNode = audioContext.createGain();
@@ -90,7 +93,7 @@ async function main(audioContext) {
   analyser.connect(outputNode)
   const baseColor = '#000000';
 
-  /* const humGain = audioContext.createGain();
+  const humGain = audioContext.createGain();
   humGain.gain.value = 0.2;
   humGain.connect(outputNode);
 
@@ -98,14 +101,13 @@ async function main(audioContext) {
   const humSample = './assets/samples/hum.wav';
   const humBuffer = await loadAudioBuffer(humSample, audioContext.sampleRate);
   const volume = 0.2;
-  const startTime = now() + 0.5; // 1 second in the future
-  //const startTime = sync.getLocalTime() + 0.5; // 1 second in the future
-  //const isRunning = global.get('running');
+  const startTime = sync.getLocalTime() + 0.5; // 1 second in the future
+  const isRunning = global.get('running');
 
   const humLoop = new LoopSampler(audioContext, humBuffer, volume, startTime);
-  humLoop.output.connect(humGain); */
+  humLoop.output.connect(humGain);
 
-  /* function playerLoop(startTime, isRunning) {
+  function playerLoop(startTime, isRunning) {
     if (!isRunning && !scheduler.has(humLoop.play)) {
         scheduler.add(humLoop.play, startTime);
         //console.log('adding scheduler');
@@ -120,10 +122,10 @@ async function main(audioContext) {
       }
   };
 
-  playerLoop(startTime, isRunning); */
+  playerLoop(startTime, isRunning);
 
 
-  const patchExportURL = "export/patch.export.json";
+  const patchExportURL = "assets/rnbo_export/patch.export.json";
   let response, patcher;
   try {
       response = await fetch(patchExportURL);
@@ -241,7 +243,8 @@ async function main(audioContext) {
   }
 
   // initial goal message
-  const goal = [30, 30, 100];
+  const goal = user.get('goal');
+  console.log('Initial goal:', goal);
   sendMessageToInport(device, 'goal', goal);
 
   // Penalty counter state
@@ -272,7 +275,7 @@ async function main(audioContext) {
     if (fill) fill.style.width = `${normalized * 100}%`;
   }
 
-  /* const vibrationPattern = [140, 80, 140];
+  const vibrationPattern = [140, 80, 140];
   const vibrationRepeatMs = 600;
   let vibrationInterval = null;
 
@@ -295,7 +298,7 @@ async function main(audioContext) {
       vibrationInterval = null;
     }
     navigator.vibrate(0);
-  } */
+  }
 
   function startPenaltyCounter() {
     if (penaltyInterval) return; // already running
@@ -307,7 +310,7 @@ async function main(audioContext) {
       if (penaltyCounter <= 0) {
         clearInterval(penaltyInterval);
         penaltyInterval = null;
-        //user.set({ life: false });
+        user.set({ life: false });
         console.log('you loose :(');
         sendMessageToInport(device, 'start', 0);
       }
@@ -334,23 +337,23 @@ async function main(audioContext) {
     } */
     if (ev.tag === "out2") {
       const harshness = ev.payload; // first value in the message
-      //const penalty = global.get('penalty');
+      const penalty = global.get('penalty');
       console.log(`Received message ${ev.tag}: ${harshness}`);
-      //user.set({harsh: harshness});// store in user state
-      /* if (harshness > 0) {
+      user.set({harsh: harshness});// store in user state
+      if (harshness > 0) {
         const countPenalty = penalty + 1;
         console.log('Increasing penalty to', countPenalty);
-        //global.set({penalty: countPenalty});
+        global.set({penalty: countPenalty});
         //applyBackgroundMode(harshness, countPenalty);
       } else if (harshness == 0 && penalty > 1) {
         const countPenalty = penalty - 1;
-        //global.set({penalty: countPenalty});
+        global.set({penalty: countPenalty});
         //applyBackgroundMode(harshness, countPenalty);
       } else if (harshness == 0 && penalty <= 1) {
         const countPenalty = 0;
-        //global.set({penalty: countPenalty});
+        global.set({penalty: countPenalty});
         //applyBackgroundMode(harshness, countPenalty);
-      } */
+      }
     }
     if (ev.tag === "out3") {
       const violence = ev.payload;
@@ -363,17 +366,17 @@ async function main(audioContext) {
       //console.log(`Received message ${ev.tag}: ${ev.payload}`);
       //user.set({energy: energy});// store in user state
     }
-    /* if (ev.tag === "out5") {
+    if (ev.tag === "out5") {
       const style = ev.payload;
       console.log('Style received:', style);
       user.set({style: style});
       control.set({del: style[0]}); // trigger update
       control.set({phase: style[1]});
       control.set({bp: style[2]});
-    } */
+    }
   });
 
-  /* global.onUpdate(updates => {
+  global.onUpdate(updates => {
     if ('running' in updates) {
       const isRunning = updates['running'];
       const enterOverlay = document.getElementById("enter-overlay");
@@ -390,7 +393,7 @@ async function main(audioContext) {
         gameOverOverlay.style.display = "flex";
       }
       console.log('Running state updated:', isRunning);
-      //playerLoop(startTime, isRunning);
+      playerLoop(startTime, isRunning);
       //sendMessageToInport(device, 'start', isRunning ? [1] : [0]);
     }
     if ('penalty' in updates) {
@@ -466,40 +469,99 @@ async function main(audioContext) {
       param.value = updates['fb_trim'];
     }
   });
- */
+
 
   // -------------------------------------------------------------------
   // RENDER FUNCTION AND GRID SETUP
   // -------------------------------------------------------------------
+  function renderApp() {
+    render(html`
+      <div id="app-root" class="centered-app">
+
+        <div id="enter-overlay">
+            <div id="enter-content">
+              <div id="enter-text"></div>
+              <div class="spacer"></div>
+              <div class="spacer"></div>
+              <button id="enter-button" type="button"> >>> </button>
+            </div>
+        </div>
+
+        <div id="gameover-overlay">
+          <div id="gameover-content">G4M3 0V3R</div>
+        </div>
+
+        <div class="ui-frame">
+          <section class="panel panel-top">
+            <div class="panel-inner">
+              <div class="oscillo-row">
+                <div id="oscilloscope-container" class="control-frame controls">
+                  <canvas id="oscilloscope" width="320" height="70"></canvas>
+                </div>
+                <!-- <div class="lfo-badge">LFO</div> -->
+              </div>
+
+              <div class="meter-group">
+                <div class="metrics-meter">
+                  <div id="penalty-counter" class="metric-box">
+                    <div class="metric-label">LIFE</div>
+                    <div class="metric-value" id="penalty-counter-value">10.0</div>
+                  </div>
+                  <div id="harshness-counter" class="metric-box">
+                    <div class="metric-label">HARSHNESS</div>
+                    <div class="metric-value" id="harshness-value">0.00</div>
+                  </div>
+                </div>
+
+                <div id="energy-counter" class="meter-row energy-meter">
+                  <div class="meter-label">ENERGY</div>
+                  <div class="energy-bar" min=0 max=1 step=0.01>
+                    <div id="energy-fill"></div>
+                  </div>
+                  <div class="energy-value" id="energy-counter-value">0.80</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel panel-bottom">
+            <div class="panel-inner">
+              <div class="control-grid">
+                <div id="xy-pad-container" class="control-frame controls pad-frame">
+                  <canvas id="xy-pad" width="260" height="260"></canvas>
+                </div>
+
+                <div id="xy-slider-container" class="control-frame controls slider-frame">
+                  <input id="xy-slider" type="range" min="0" max="100" value="0" />
+                </div>
+              </div>
+
+              <div id="touch-debug" class="debug-box">[--, --, --]</div>
+              
+              <!--  <div class="preset-row">
+                  <button class="preset-btn" type="button" data-preset="0">P1</button>
+                  <button class="preset-btn" type="button" data-preset="1">P2</button>
+                  <button class="preset-btn" type="button" data-preset="2">P3</button>
+                  <button class="preset-btn" type="button" data-preset="3">P4</button>
+                </div> -->
+                
+              </div>
+          </section>
+        </div>
+
+      </div>
+    `, $container);
+    }
+    renderApp();
     //setupStartStop(device, audioContext);
     setGameoverOverlay = (visible) => {
       const overlay = document.getElementById('gameover-overlay');
       if (overlay) overlay.style.display = visible ? 'flex' : 'none';
     };
     setGameoverOverlay(false);
-    setupUI(device, presets);
+    setupUI(device, control, user, presets);
     startOscilloscope(analyser);
   }
-
-document.addEventListener("DOMContentLoaded", () => {
-  const enterButton = document.getElementById("enter-button");
-  const enterOverlay = document.getElementById("enter-overlay");
-
-  enterButton.onclick = async () => {
-    // Remove overlay
-    enterOverlay.style.display = "none";
-
-    // Create and resume AudioContext in direct response to user gesture
-    const WAContext = window.AudioContext || window.webkitAudioContext;
-    const context = new WAContext();
-    console.log("AudioContext created:", context);
-    await context.resume();
-    console.log("AudioContext resumed");
-
-    // Call setup and pass context
-    await main(context);
-  };
-});
 
 // load RNBO script dynamically
 function loadRNBOScript(version) {
@@ -631,7 +693,7 @@ function startOscilloscope(analyser) {
   draw();
 }
 
-function setupUI(device, presets) {
+function setupUI(device, control, user, presets) {
     // Get all UI elements we need
     const canvas = document.getElementById('xy-pad');
     const ctx = canvas.getContext('2d');
@@ -644,15 +706,15 @@ function setupUI(device, presets) {
     const accentColor = getComputedStyle(document.documentElement)
       .getPropertyValue('--sw-accent-color').trim() || '#ff44b4';
 
-    /* const updateControlPosition = (x, y, z) => {
+    const updateControlPosition = (x, y, z) => {
       if (control) control.set({ X: x, Y: y, Z: z });
-    }; */
+    };
 
     const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
     const toPercent = (value) => Math.round((value / padSize) * 100);
     const zoomFromZ = (z) => 1 + (clamp(z, 0, 100) / 100) * 3;
     const emitTouch = (mapped, z, reason) => {
-        //updateControlPosition(mapped.touchX, mapped.touchY, z);
+        updateControlPosition(mapped.touchX, mapped.touchY, z);
         sendMessageToInport(device, 'touch', [mapped.touchX, mapped.touchY, z]);
         if (touchDebug) touchDebug.textContent = `[${mapped.touchX}, ${mapped.touchY}, ${z}]`;
     };
@@ -688,7 +750,11 @@ function setupUI(device, presets) {
             console.warn('Preset index out of range:', presetIndex);
             return;
           }
+          if (user?.set) {
+            user.set({ preset: presetIndex });
+          } else {
             loadPresetAtIndex(device, presets, presetIndex);
+          }
         });
       });
     }
@@ -700,7 +766,7 @@ function setupUI(device, presets) {
     let dotY = padSize / 2 + Math.random() * 200 - 100;
     let dragging = false;
     let startActive = false;
-    let targetPoint = [30, 30];
+    let targetPoint = Array.isArray(user?.get?.('goal')) ? user.get('goal') : [50, 50];
     let showTarget = false;
     let focusPoint = { x: dotX, y: dotY };
     let lastRaw = { x: dotX, y: dotY };
@@ -905,7 +971,7 @@ function setupUI(device, presets) {
             if (!startActive) {
               sendMessageToInport(device, 'randomize', [1]);
               sendMessageToInport(device, 'start', [1]);
-              //if (control) control.set({active: 1});
+              if (control) control.set({active: 1});
               startActive = true;
         }
       }
@@ -948,7 +1014,7 @@ function setupUI(device, presets) {
         emitTouch(mapped, sliderVal, reason);
         if (startActive) {
           sendMessageToInport(device, 'start', [0]);
-          //if (control) control.set({active: 0});
+          if (control) control.set({active: 0});
           startActive = false;
         }
         animateZoomToZero(1000);
@@ -959,14 +1025,14 @@ function setupUI(device, presets) {
     canvas.addEventListener('pointercancel', (e) => handlePointerEnd(e, 'pointercancel'));
     canvas.addEventListener('pointerout', (e) => handlePointerEnd(e, 'pointerout'));
 
-    /* if (user?.onUpdate) {
+    if (user?.onUpdate) {
       user.onUpdate(updates => {
         if ('goal' in updates && Array.isArray(updates.goal)) {
           targetPoint = updates.goal;
           drawPad();
         }
       });
-    } */
+    }
 
     updateGridFocus();
     drawPad();
@@ -983,9 +1049,62 @@ function setupUI(device, presets) {
         }
       });
     } */
+
+    // Overlay text can be advanced as soon as UI is rendered (DOMContentLoaded may already have fired)
+    const enterButton = document.getElementById("enter-button");
+    const enterText = document.getElementById("enter-text");
+    const enterTexts = [
+      [
+        'Welcome to B3-H4RSH!',
+        'This a noise game, you have to harsh. ', 
+        'The goal is to seek the harshest sound possible.',
+        'Be careful: if another player harshes, you lose life points.',
+        'Stay alive and be the last player still sounding to win.',
+      ],
+      [
+        'Tap and hold the pad to generate the sound.',
+        'Every time you tap, a new sound can come up.',
+        'Drag around and move the slider to shape the noise',
+        'Find the best point to harsh!',
+      ],
+      [
+        'Turn up the volume on your device.',
+        'Turn up the brightness of your screen.',
+        'Wait for the game to start.',
+        'Good luck and enjoy!',
+      ],
+    ];
+    let enterTextIndex = 0;
+
+    const renderEnterText = (index) => {
+      if (!enterText) return;
+      const lines = enterTexts[index] || [];
+      const nodes = lines.map((line) => {
+        const p = document.createElement('p');
+        const em = document.createElement('em');
+        em.textContent = line;
+        p.appendChild(em);
+        return p;
+      });
+      enterText.replaceChildren(...nodes);
+      if (enterButton) {
+        enterButton.style.display = index < enterTexts.length - 1 ? 'flex' : 'none';
+      }
+    };
+    if (enterButton && enterText) {
+      const enterOverlay = document.getElementById("enter-overlay");
+      enterOverlay.style.display = "none";
+      /* renderEnterText(enterTextIndex);
+      enterButton.onclick = () => {
+        enterTextIndex = Math.min(enterTextIndex + 1, enterTexts.length - 1);
+        renderEnterText(enterTextIndex);
+      }; */
+    }
 }
 
 // The launcher allows to launch multiple clients in the same browser window
 // e.g. `http://127.0.0.1:8000?emulate=10` to run 10 clients side-by-side
-
+launcher.execute(main, {
+  numClients: parseInt(new URLSearchParams(window.location.search).get('emulate') || '') || 1,
+});
    
