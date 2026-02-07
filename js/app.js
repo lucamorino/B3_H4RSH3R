@@ -692,6 +692,8 @@ function setupUI(device, presets) {
         });
       });
     }
+    loadPresetAtIndex(device, presets, 0); // load first preset by default
+    console.log('UI setup complete');
 
     // Setup pad
     const padSize = canvas.width;
