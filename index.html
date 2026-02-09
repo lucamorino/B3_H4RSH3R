@@ -27,6 +27,7 @@
         </div>
 
         <div class="ui-frame">
+        <section class="panel">
           <section class="panel panel-top">
             <div class="panel-inner">
               <div class="oscillo-row">
@@ -63,25 +64,34 @@
             <div class="panel-inner">
               <div class="control-grid">
                 <div id="xy-pad-container" class="control-frame controls pad-frame">
-                  <canvas id="xy-pad" width="260" height="260"></canvas>
-                </div>
-
-                <div id="xy-slider-container" class="control-frame controls slider-frame">
-                  <input id="xy-slider" type="range" min="0" max="100" value="0" />
+                  <canvas id="xy-pad" width="320" height="320"></canvas>
                 </div>
               </div>
 
               <div id="touch-debug" class="debug-box">[--, --, --]</div>
-              
-                <div class="preset-row">
+
+               <section class="panel panel-presets"> 
+              <div class="preset-row-up">
                   <button class="preset-btn" type="button" data-preset="0">P1</button>
                   <button class="preset-btn" type="button" data-preset="1">P2</button>
                   <button class="preset-btn" type="button" data-preset="2">P3</button>
                   <button class="preset-btn" type="button" data-preset="3">P4</button>
                 </div>
-                
+                <div class="preset-row-bottom">
+                  <button class="preset-btn" type="button" data-preset="4">P5</button>
+                  <button class="preset-btn" type="button" data-preset="5">P6</button>
+                  <button class="preset-btn" type="button" data-preset="6">P7</button>
+                  <button class="preset-btn" type="button" data-preset="7">P8</button>
+                </div> 
+                </section>
+
+              <div id="xy-slider-container" class="control-frame controls slider-frame">
+                <input id="xy-slider" type="range" min="0" max="100" value="0" />
               </div>
+            
+              </div>              
           </section>
+        </section>
         </div>
 
       </div>

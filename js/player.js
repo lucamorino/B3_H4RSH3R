@@ -165,6 +165,40 @@ async function main($container) {
   }
   //console.log("device:", device)
 
+  const hitSampleFiles = [
+    'drakqs-NS-A#5-ff-75.wav',
+    'drakqs-NS-A#5-pp-826.wav',
+    'drakqs-NS-A#6-pp-206.wav',
+    'drakqs-NS-A#7-ff-1039.wav',
+    'drakqs-NS-A6-ff-1025.wav',
+    'drakqs-NS-A6-ff-663.wav',
+    'drakqs-NS-A7-ff-518.wav',
+    'drakqs-NS-B5-f-654.wav',
+    'drakqs-NS-B6-f-1225.wav',
+    'drakqs-NS-B7-pp-721.wav',
+  ];
+  const hitBufferDependencies = hitSampleFiles.map((filename, index) => ({
+    id: `samples.${index + 1}`,
+    file: `./assets/samples/hit/${encodeURIComponent(filename)}`,
+  }));
+
+  try {
+    if (typeof device.loadDataBufferDependencies === 'function') {
+      const results = await device.loadDataBufferDependencies(hitBufferDependencies);
+      const failed = results.filter((entry) => entry.type !== 'success');
+      if (failed.length > 0) {
+        console.warn('Some hit buffers failed to load:', failed);
+      }
+    } else {
+      for (const dependency of hitBufferDependencies) {
+        const buffer = await loadAudioBuffer(dependency.file, audioContext.sampleRate);
+        await device.setDataBuffer(dependency.id, buffer);
+      }
+    }
+  } catch (err) {
+    console.error('Failed to load hit sample buffers:', err);
+  }
+
   // Connect the device to the web audio graph
   device.node.connect(analyser);
 
@@ -281,6 +315,7 @@ async function main($container) {
 
   function canVibrate() {
     return typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function';
+    console.warn('Vibration API not supported in this environment');
   }
 
   function startVibration() {
@@ -344,15 +379,15 @@ async function main($container) {
         const countPenalty = penalty + 1;
         console.log('Increasing penalty to', countPenalty);
         global.set({penalty: countPenalty});
-        //applyBackgroundMode(harshness, countPenalty);
+        applyBackgroundMode(harshness, countPenalty);
       } else if (harshness == 0 && penalty > 1) {
         const countPenalty = penalty - 1;
         global.set({penalty: countPenalty});
-        //applyBackgroundMode(harshness, countPenalty);
+        applyBackgroundMode(harshness, countPenalty);
       } else if (harshness == 0 && penalty <= 1) {
         const countPenalty = 0;
         global.set({penalty: countPenalty});
-        //applyBackgroundMode(harshness, countPenalty);
+        applyBackgroundMode(harshness, countPenalty);
       }
     }
     if (ev.tag === "out3") {
@@ -492,6 +527,7 @@ async function main($container) {
         </div>
 
         <div class="ui-frame">
+        <section class="panel">
           <section class="panel panel-top">
             <div class="panel-inner">
               <div class="oscillo-row">
@@ -528,25 +564,37 @@ async function main($container) {
             <div class="panel-inner">
               <div class="control-grid">
                 <div id="xy-pad-container" class="control-frame controls pad-frame">
-                  <canvas id="xy-pad" width="260" height="260"></canvas>
-                </div>
-
-                <div id="xy-slider-container" class="control-frame controls slider-frame">
-                  <input id="xy-slider" type="range" min="0" max="100" value="0" />
+                  <canvas id="xy-pad" width="320" height="320"></canvas>
                 </div>
               </div>
 
               <div id="touch-debug" class="debug-box">[--, --, --]</div>
-              
-              <!--  <div class="preset-row">
+
+               <section class="panel panel-presets"> 
+              <div class="preset-row-up">
                   <button class="preset-btn" type="button" data-preset="0">P1</button>
                   <button class="preset-btn" type="button" data-preset="1">P2</button>
                   <button class="preset-btn" type="button" data-preset="2">P3</button>
                   <button class="preset-btn" type="button" data-preset="3">P4</button>
-                </div> -->
-                
+                </div>
+                <div class="preset-row-bottom">
+                  <button class="preset-btn" type="button" data-preset="4">P5</button>
+                  <button class="preset-btn" type="button" data-preset="5">P6</button>
+                  <button class="preset-btn" type="button" data-preset="6">P7</button>
+                  <button class="preset-btn" type="button" data-preset="7">P8</button>
+                </div> 
+                </section>
+
+              <div id="xy-slider-container" class="control-frame controls slider-frame">
+                <input id="xy-slider" type="range" min="0" max="100" value="0" />
               </div>
-          </section>
+            
+              </div>
+          <!-- </section>
+          <section class="panel panel-presets"> -->
+              
+              </section>
+            </section>
         </div>
 
       </div>
@@ -713,6 +761,16 @@ function setupUI(device, control, user, presets) {
     const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
     const toPercent = (value) => Math.round((value / padSize) * 100);
     const zoomFromZ = (z) => 1 + (clamp(z, 0, 100) / 100) * 3;
+    const sliderMaxValue = Number(slider?.max ?? 100) || 100;
+    let sliderWasAtMax = Number(slider?.value || 0) >= sliderMaxValue;
+    const triggerLfoOnSliderMax = (value) => {
+      const isAtMax = Number(value) >= sliderMaxValue;
+      if (isAtMax && !sliderWasAtMax) {
+        sendMessageToInport(device, 'LFO', 1);
+        console.log('Slider reached max, triggering LFO');
+      }
+      sliderWasAtMax = isAtMax;
+    };
     const emitTouch = (mapped, z, reason) => {
         updateControlPosition(mapped.touchX, mapped.touchY, z);
         sendMessageToInport(device, 'touch', [mapped.touchX, mapped.touchY, z]);
@@ -728,6 +786,7 @@ function setupUI(device, control, user, presets) {
         const focusY = focusPoint.y;
 
         if (sliderValue) sliderValue.textContent = String(v);
+        triggerLfoOnSliderMax(v);
 
         const mapped = mapToOutput(lastRaw.x, lastRaw.y, focusX, focusY);
         focusPoint.x = mapped.zoomedX;
@@ -781,18 +840,27 @@ function setupUI(device, control, user, presets) {
     let activePointerId = null;
 
     function getXY(e) {
-        let rect = canvas.getBoundingClientRect();
-        let x, y;
-        if (e.touches) {
-            x = e.touches[0].clientX - rect.left;
-            y = e.touches[0].clientY - rect.top;
+        const rect = canvas.getBoundingClientRect();
+        let clientX;
+        let clientY;
+
+        if (e.touches && e.touches.length > 0) {
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
         } else if (e.clientX !== undefined && e.clientY !== undefined) {
-            x = e.clientX - rect.left;
-            y = e.clientY - rect.top;
-        } else if (e.pointerType && e.pointerType === 'touch') {
-            x = e.clientX - rect.left;
-            y = e.clientY - rect.top;
+            clientX = e.clientX;
+            clientY = e.clientY;
+        } else {
+            return { x: dotX, y: dotY };
         }
+
+        // Convert from CSS pixels to canvas coordinates to avoid drift when
+        // canvas is displayed at a different size than its internal buffer.
+        const scaleX = rect.width > 0 ? canvas.width / rect.width : 1;
+        const scaleY = rect.height > 0 ? canvas.height / rect.height : 1;
+        let x = (clientX - rect.left) * scaleX;
+        let y = (clientY - rect.top) * scaleY;
+        
         x = Math.max(dotRadius, Math.min(padSize - dotRadius, x));
         y = Math.max(dotRadius, Math.min(padSize - dotRadius, y));
         return { x, y };
@@ -869,6 +937,7 @@ function setupUI(device, control, user, presets) {
           const v = Math.round(fromVal + (toVal - fromVal) * t);
           slider.value = String(v);
           if (sliderValue) sliderValue.textContent = String(v);
+          triggerLfoOnSliderMax(v);
 
           zoomFactor = zoomFromZ(v);
           updateGridFocus();
@@ -976,16 +1045,6 @@ function setupUI(device, control, user, presets) {
         }
       }
     });
-
-    // Waveform buttons: toggle active/inactive styling
-    /* if (waveButtons && waveButtons.length) {
-      waveButtons.forEach((btn) => {
-        btn.addEventListener('click', () => {
-          btn.classList.toggle('active');
-          btn.classList.toggle('inactive');
-        });
-      });
-    } */
 
     canvas.addEventListener('pointermove', (e) => {
         if (dragging && e.pointerId === activePointerId) {

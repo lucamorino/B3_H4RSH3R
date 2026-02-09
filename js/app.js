@@ -163,6 +163,55 @@ async function main(audioContext) {
   }
   //console.log("device:", device)
 
+  async function loadAudioBuffer(pathname, sampleRate = 48000) {
+  if (!contexts.has(sampleRate)) {
+    const context = new OfflineAudioContext(1, 1, sampleRate);
+    contexts.set(sampleRate, context);
+  }
+
+  const response = await fetch(pathname);
+  const arrayBuffer = await response.arrayBuffer();
+
+  const context = contexts.get(sampleRate);
+  const audioBuffer = await context.decodeAudioData(arrayBuffer);
+
+  return audioBuffer;
+}
+
+  const hitSampleFiles = [
+    'drakqs-NS-A#5-ff-75.wav',
+    'drakqs-NS-A#5-pp-826.wav',
+    'drakqs-NS-A#6-pp-206.wav',
+    'drakqs-NS-A#7-ff-1039.wav',
+    'drakqs-NS-A6-ff-1025.wav',
+    'drakqs-NS-A6-ff-663.wav',
+    'drakqs-NS-A7-ff-518.wav',
+    'drakqs-NS-B5-f-654.wav',
+    'drakqs-NS-B6-f-1225.wav',
+    'drakqs-NS-B7-pp-721.wav',
+  ];
+  const hitBufferDependencies = hitSampleFiles.map((filename, index) => ({
+    id: `samples.${index + 1}`,
+    file: `samples/hit/${encodeURIComponent(filename)}`,
+  }));
+
+  try {
+    if (typeof device.loadDataBufferDependencies === 'function') {
+      const results = await device.loadDataBufferDependencies(hitBufferDependencies);
+      const failed = results.filter((entry) => entry.type !== 'success');
+      if (failed.length > 0) {
+        console.warn('Some hit buffers failed to load:', failed);
+      }
+    } else {
+      for (const dependency of hitBufferDependencies) {
+        const buffer = await loadAudioBuffer(dependency.file, audioContext.sampleRate);
+        await device.setDataBuffer(dependency.id, buffer);
+      }
+    }
+  } catch (err) {
+    console.error('Failed to load hit sample buffers:', err);
+  }
+
   // Connect the device to the web audio graph
   device.node.connect(analyser);
 
@@ -337,20 +386,20 @@ async function main(audioContext) {
       //const penalty = global.get('penalty');
       console.log(`Received message ${ev.tag}: ${harshness}`);
       //user.set({harsh: harshness});// store in user state
-      /* if (harshness > 0) {
-        const countPenalty = penalty + 1;
+      if (harshness > 0) {
+        //const countPenalty = penalty + 1;
         console.log('Increasing penalty to', countPenalty);
         //global.set({penalty: countPenalty});
-        //applyBackgroundMode(harshness, countPenalty);
+        applyBackgroundMode(harshness, countPenalty);
       } else if (harshness == 0 && penalty > 1) {
-        const countPenalty = penalty - 1;
+        //const countPenalty = penalty - 1;
         //global.set({penalty: countPenalty});
-        //applyBackgroundMode(harshness, countPenalty);
+        applyBackgroundMode(harshness, countPenalty);
       } else if (harshness == 0 && penalty <= 1) {
-        const countPenalty = 0;
+        //const countPenalty = 0;
         //global.set({penalty: countPenalty});
-        //applyBackgroundMode(harshness, countPenalty);
-      } */
+        applyBackgroundMode(harshness, countPenalty);
+      }
     }
     if (ev.tag === "out3") {
       const violence = ev.payload;
@@ -651,6 +700,16 @@ function setupUI(device, presets) {
     const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
     const toPercent = (value) => Math.round((value / padSize) * 100);
     const zoomFromZ = (z) => 1 + (clamp(z, 0, 100) / 100) * 3;
+    const sliderMaxValue = Number(slider?.max ?? 100) || 100;
+    let sliderWasAtMax = Number(slider?.value || 0) >= sliderMaxValue;
+    const triggerLfoOnSliderMax = (value) => {
+      const isAtMax = Number(value) >= sliderMaxValue;
+      if (isAtMax && !sliderWasAtMax) {
+        sendMessageToInport(device, 'LFO', 1);
+        console.log('Slider reached max, triggering LFO');
+      }
+      sliderWasAtMax = isAtMax;
+    };
     const emitTouch = (mapped, z, reason) => {
         //updateControlPosition(mapped.touchX, mapped.touchY, z);
         sendMessageToInport(device, 'touch', [mapped.touchX, mapped.touchY, z]);
@@ -666,6 +725,7 @@ function setupUI(device, presets) {
         const focusY = focusPoint.y;
 
         if (sliderValue) sliderValue.textContent = String(v);
+        triggerLfoOnSliderMax(v);
 
         const mapped = mapToOutput(lastRaw.x, lastRaw.y, focusX, focusY);
         focusPoint.x = mapped.zoomedX;
@@ -717,18 +777,27 @@ function setupUI(device, presets) {
     let activePointerId = null;
 
     function getXY(e) {
-        let rect = canvas.getBoundingClientRect();
-        let x, y;
-        if (e.touches) {
-            x = e.touches[0].clientX - rect.left;
-            y = e.touches[0].clientY - rect.top;
+        const rect = canvas.getBoundingClientRect();
+        let clientX;
+        let clientY;
+
+        if (e.touches && e.touches.length > 0) {
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
         } else if (e.clientX !== undefined && e.clientY !== undefined) {
-            x = e.clientX - rect.left;
-            y = e.clientY - rect.top;
-        } else if (e.pointerType && e.pointerType === 'touch') {
-            x = e.clientX - rect.left;
-            y = e.clientY - rect.top;
+            clientX = e.clientX;
+            clientY = e.clientY;
+        } else {
+            return { x: dotX, y: dotY };
         }
+
+        // Convert from CSS pixels to canvas coordinates to avoid drift when
+        // canvas is displayed at a different size than its internal buffer.
+        const scaleX = rect.width > 0 ? canvas.width / rect.width : 1;
+        const scaleY = rect.height > 0 ? canvas.height / rect.height : 1;
+        let x = (clientX - rect.left) * scaleX;
+        let y = (clientY - rect.top) * scaleY;
+        
         x = Math.max(dotRadius, Math.min(padSize - dotRadius, x));
         y = Math.max(dotRadius, Math.min(padSize - dotRadius, y));
         return { x, y };
