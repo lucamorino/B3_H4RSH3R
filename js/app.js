@@ -273,11 +273,9 @@ async function main(audioContext) {
     backgroundRAF = requestAnimationFrame(render);
   }
 
-  function applyBackgroundMode(harshness, penalty) {
+  function applyBackgroundMode(harshness) {
     if (harshness > 0) {
       backgroundState = { mode: 'harsh', gain: 0.8, color: 'white' };
-    } else if (penalty > 0) {
-      backgroundState = { mode: 'penalty', gain: 0.4, color: 'red' };
     } else {
       backgroundState = { mode: 'idle', gain: 0, color: 'black' };
     }
@@ -308,6 +306,20 @@ async function main(audioContext) {
 
   function updateHarshnessDisplay(value) {
     const el = document.getElementById('harshness-value');
+    if (!el) return;
+    const v = Number(value);
+    el.textContent = Number.isFinite(v) ? v.toFixed(2) : '0.00';
+  }
+
+  function updateSharpnessDisplay(value) {
+    const el = document.getElementById('sharpness-value');
+    if (!el) return;
+    const v = Number(value);
+    el.textContent = Number.isFinite(v) ? v.toFixed(2) : '0.00';
+  }
+
+  function updateRoughnessDisplay(value) {
+    const el = document.getElementById('roughness-value');
     if (!el) return;
     const v = Number(value);
     el.textContent = Number.isFinite(v) ? v.toFixed(2) : '0.00';
@@ -386,20 +398,7 @@ async function main(audioContext) {
       //const penalty = global.get('penalty');
       console.log(`Received message ${ev.tag}: ${harshness}`);
       //user.set({harsh: harshness});// store in user state
-      if (harshness > 0) {
-        //const countPenalty = penalty + 1;
-        console.log('Increasing penalty to', countPenalty);
-        //global.set({penalty: countPenalty});
-        applyBackgroundMode(harshness, countPenalty);
-      } else if (harshness == 0 && penalty > 1) {
-        //const countPenalty = penalty - 1;
-        //global.set({penalty: countPenalty});
-        applyBackgroundMode(harshness, countPenalty);
-      } else if (harshness == 0 && penalty <= 1) {
-        //const countPenalty = 0;
-        //global.set({penalty: countPenalty});
-        applyBackgroundMode(harshness, countPenalty);
-      }
+      applyBackgroundMode(harshness);  
     }
     if (ev.tag === "out3") {
       const violence = ev.payload;
@@ -407,6 +406,11 @@ async function main(audioContext) {
       //console.log(`Received message ${ev.tag}: ${ev.payload}`); 
     }
     if (ev.tag === "out4") {
+      const sharpness = ev.payload;
+      updateSharpnessDisplay(sharpness);
+      //console.log(`Received message ${ev.tag}: ${ev.payload}`); 
+    }
+    if (ev.tag === "out5") {
       const energy = ev.payload;
       updateEnergyDisplay(energy);
       //console.log(`Received message ${ev.tag}: ${ev.payload}`);
@@ -1004,7 +1008,7 @@ function setupUI(device, presets) {
             drawPad();
             const mapped = mapToOutput(dotX, dotY, focusPoint.x, focusPoint.y);
             lastMapped = mapped;
-            console.log('Pointer move mapped:', mapped);
+            //console.log('Pointer move mapped:', mapped);
             const sliderVal = Number(slider?.value || 50);
             emitTouch(mapped, sliderVal, 'pointermove');
         }

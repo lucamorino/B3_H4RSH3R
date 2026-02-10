@@ -283,7 +283,7 @@ a:hover {
 
 .metrics-meter {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -311,13 +311,24 @@ a:hover {
 
 .meter-row {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
   padding: 6px 10px;
   background: rgba(10, 10, 12, 0.9);
   border: 1px solid rgba(255, 255, 255, 0.25);
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06) inset;
+}
+
+.energy-life-row {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 8px;
+  align-items: stretch;
+}
+
+.energy-life-row #penalty-counter {
+  width: 100%;
 }
 
 .meter-label {
@@ -895,6 +906,10 @@ a:hover {
   .meter-row {
     gap: 6px;
     padding: 4px 6px;
+  }
+
+  .energy-life-row {
+    gap: 6px;
   }
 
   .metric-label,
