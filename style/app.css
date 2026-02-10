@@ -982,10 +982,10 @@ a:hover {
     letter-spacing: 1px;
   }
   #enter-text {
-    font-size: 9px;
+    font-size: 8px;
     letter-spacing: 1px;
     color: #f4f4f4;
-    line-height: 6px;
+    line-height: 4px;
     white-space: pre-wrap;
     margin-bottom: 12px;
   }
